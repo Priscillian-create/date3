@@ -1,0 +1,16 @@
+{
+  "name": "Pa Gerrys Mart",
+  "short_name": "Pa Gerrys",
+  "description": "Supermarket POS System",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#2c3e50",
+  "theme_color": "#2c3e50",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cGF0aCBmaWxsPSIjMjNjM2U1MCIgZD0iTTE0OCAxMjBjMC0xNy43IDE0LjMtMzIgMzItMzJzMzIgMTQuMyAzMiAzMmMwIDguOC0zLjYgMTYuNy05LjQgMjIuNmwtMTIuMiAxMi4yYy0yLjgtMi44LTYuNi00LjQtMTAuNi00LjRzLTcuOCAxLjYtMTAuNiA0LjRsLTEyLjItMTIuMmMtNS44LTUuOC05LjQtMTMuOC05LjQtMjIuNiAwLTE3LjcgMTQuMy0zMiAzMi0zMnMzMiAxNC4zIDMyIDMyYzAgOC44LTMuNiAxNi43LTkuNCAyMi42bDQuNiA0LjZjNS44IDUuOCAxNS4yIDUuOCAyMXMtNS44IDE1LjItNS44IDIxbC00LjYgNC42YzUuOCA1LjggMTMuOCA5LjQgMjIuNiA5LjQgMTcuNyAwIDMyLTE0LjMgMzItMzJ6TTE0OCAxMjBjMC04LjgtNy4yLTE2LTE2LTE2cy0xNiA3LjItMTYgMTYgNy4yIDE2IDE2IDE2IDE2LTcuMiAxNi0xNnoiLz48L3N2Zz4=",
+      "sizes": "144x144",
+      "type": "image/svg+xml"
+    }
+  ]
+}
