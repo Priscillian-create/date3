@@ -731,8 +731,20 @@ const DataModule = {
                             throw error;
                         }
                     } else if (data) {
+                        // Normalize the data to ensure consistent field names
+                        const normalizedProducts = data.map(product => {
+                            // Handle different possible column names for expiry date
+                            if (product.expiry_date && !product.expiryDate) {
+                                product.expiryDate = product.expiry_date;
+                            } else if (product.expiryDate && !product.expiry_date) {
+                                product.expiry_date = product.expiryDate;
+                            }
+                            
+                            return product;
+                        });
+                        
                         // Update global products variable
-                        products = data;
+                        products = normalizedProducts;
                         saveToLocalStorage();
                         return products;
                     }
@@ -807,7 +819,7 @@ const DataModule = {
         }
     },
     
-    // ✅ FIXED: Products with better error handling
+    // ✅ FIXED: Products with better error handling and column name flexibility
     async saveProduct(product) {
         // Show loading state
         productModalLoading.style.display = 'flex';
@@ -830,18 +842,23 @@ const DataModule = {
             if (isOnline) {
                 // Online: Save to Supabase
                 try {
+                    // Create a copy of the product with the correct field names
+                    const productToSave = {
+                        name: product.name,
+                        category: product.category,
+                        price: product.price,
+                        stock: product.stock,
+                        // Try different possible column names for expiry date
+                        expiry_date: product.expiryDate,  // snake_case version
+                        expiryDate: product.expiryDate,   // camelCase version
+                        barcode: product.barcode || null
+                    };
+                    
                     if (product.id && !product.id.startsWith('temp_')) {
                         // Update existing product
                         const { data, error } = await supabase
                             .from('products')
-                            .update({
-                                name: product.name,
-                                category: product.category,
-                                price: product.price,
-                                stock: product.stock,
-                                expiryDate: product.expiryDate,
-                                barcode: product.barcode || null
-                            })
+                            .update(productToSave)
                             .eq('id', product.id)
                             .select();
                         
@@ -851,18 +868,9 @@ const DataModule = {
                         }
                     } else {
                         // Add new product
-                        const productToInsert = {
-                            name: product.name,
-                            category: product.category,
-                            price: product.price,
-                            stock: product.stock,
-                            expiryDate: product.expiryDate,
-                            barcode: product.barcode || null
-                        };
-                        
                         const { data, error } = await supabase
                             .from('products')
-                            .insert(productToInsert)
+                            .insert(productToSave)
                             .select();
                         
                         if (error) {
@@ -895,6 +903,101 @@ const DataModule = {
                         showNotification('Database policy issue detected. Saving locally only.', 'warning');
                         // Fall back to local storage
                         return this.saveProductLocally(product);
+                    } else if (dbError.message && dbError.message.includes('column')) {
+                        // Column name mismatch - try to determine the correct column name
+                        console.warn('Column name mismatch detected, trying alternative column names');
+                        
+                        // Try with just snake_case
+                        try {
+                            const productToSave = {
+                                name: product.name,
+                                category: product.category,
+                                price: product.price,
+                                stock: product.stock,
+                                expiry_date: product.expiryDate,  // Only snake_case
+                                barcode: product.barcode || null
+                            };
+                            
+                            if (product.id && !product.id.startsWith('temp_')) {
+                                const { data, error } = await supabase
+                                    .from('products')
+                                    .update(productToSave)
+                                    .eq('id', product.id)
+                                    .select();
+                                
+                                if (error) throw error;
+                            } else {
+                                const { data, error } = await supabase
+                                    .from('products')
+                                    .insert(productToSave)
+                                    .select();
+                                
+                                if (error) throw error;
+                                
+                                if (data && data.length > 0) {
+                                    product.id = data[0].id;
+                                }
+                            }
+                            
+                            // Update local cache
+                            const index = products.findIndex(p => p.id === product.id);
+                            if (index >= 0) {
+                                products[index] = product;
+                            } else {
+                                products.push(product);
+                            }
+                            
+                            saveToLocalStorage();
+                            return { success: true, product };
+                        } catch (retryError) {
+                            // If still fails, try with just camelCase
+                            try {
+                                const productToSave = {
+                                    name: product.name,
+                                    category: product.category,
+                                    price: product.price,
+                                    stock: product.stock,
+                                    expiryDate: product.expiryDate,  // Only camelCase
+                                    barcode: product.barcode || null
+                                };
+                                
+                                if (product.id && !product.id.startsWith('temp_')) {
+                                    const { data, error } = await supabase
+                                        .from('products')
+                                        .update(productToSave)
+                                        .eq('id', product.id)
+                                        .select();
+                                    
+                                    if (error) throw error;
+                                } else {
+                                    const { data, error } = await supabase
+                                        .from('products')
+                                        .insert(productToSave)
+                                        .select();
+                                    
+                                    if (error) throw error;
+                                    
+                                    if (data && data.length > 0) {
+                                        product.id = data[0].id;
+                                    }
+                                }
+                                
+                                // Update local cache
+                                const index = products.findIndex(p => p.id === product.id);
+                                if (index >= 0) {
+                                    products[index] = product;
+                                } else {
+                                    products.push(product);
+                                }
+                                
+                                saveToLocalStorage();
+                                return { success: true, product };
+                            } catch (finalError) {
+                                console.error('All column name attempts failed:', finalError);
+                                showNotification('Database schema mismatch. Saving locally only.', 'warning');
+                                return this.saveProductLocally(product);
+                            }
+                        }
                     } else {
                         showNotification('Database error: ' + dbError.message, 'error');
                         throw dbError;
